@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bullet as BulletType, BulletStatus, BulletType as BType } from '../lib/db';
 import { useJournal } from '../context/JournalContext';
 import { GripVertical, Trash2, Check, X, ArrowRight, ArrowLeft, Minus, Circle } from 'lucide-react';
@@ -9,12 +9,19 @@ interface BulletProps {
 }
 
 const Bullet: React.FC<BulletProps> = ({ bullet, dragHandleProps }) => {
-  const { updateBullet, deleteBullet } = useJournal();
+  const { updateBullet, deleteBullet, dispatch } = useJournal();
   const [content, setContent] = useState(bullet.content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setContent(bullet.content);
   }, [bullet.content]);
+
+  useEffect(() => {
+    if (bullet.content === '' && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   const handleBlur = () => {
     if (content !== bullet.content) {
@@ -61,6 +68,25 @@ const Bullet: React.FC<BulletProps> = ({ bullet, dragHandleProps }) => {
     }
   };
 
+  const renderContentWithTags = (text: string) => {
+    return text.split(/(\s+)/).map((part, i) => {
+      if (part.startsWith('#')) {
+        return (
+          <button 
+            key={i} 
+            onClick={() => dispatch({ type: 'SET_SEARCH', payload: part })}
+            className="text-blue-600 font-bold hover:underline"
+          >
+            {part}
+          </button>
+        );
+      }
+      return part;
+    });
+  };
+
+  const statusLabel = `Status: ${bullet.status}. Type: ${bullet.type}. Click to cycle status, Right click to cycle type.`;
+
   return (
     <div 
       className="group relative flex items-start gap-2 py-1 transition-all"
@@ -68,7 +94,10 @@ const Bullet: React.FC<BulletProps> = ({ bullet, dragHandleProps }) => {
     >
       <div 
         {...dragHandleProps}
-        className="mt-1.5 p-1 text-gray-200 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing hover:text-gray-400"
+        className="mt-1.5 p-1 text-gray-200 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing hover:text-gray-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-blue-500 rounded outline-none"
+        aria-label="Drag handle"
+        role="button"
+        tabIndex={0}
       >
         <GripVertical className="w-3.5 h-3.5" />
       </div>
@@ -77,48 +106,58 @@ const Bullet: React.FC<BulletProps> = ({ bullet, dragHandleProps }) => {
         onClick={toggleStatus}
         onContextMenu={(e) => { e.preventDefault(); toggleType(); }}
         className={`
-          mt-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors
+          mt-1.5 w-5 h-5 flex items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500
           ${bullet.status === 'done' ? 'bg-green-50' : 'hover:bg-gray-100'}
         `}
-        title="Left click: status, Right click: type"
+        aria-label={statusLabel}
+        title={statusLabel}
       >
         {getStatusIcon()}
       </button>
 
-      <textarea 
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={(e) => {
-          if (e.key === 'Tab') {
-            e.preventDefault();
-            if (e.shiftKey) decreaseIndent();
-            else increaseIndent();
-          }
-        }}
-        placeholder={bullet.type === 'task' ? 'Add a task...' : bullet.type === 'event' ? 'Add an event...' : 'Add a note...'}
-        className={`
-          flex-1 py-1 bg-transparent border-none focus:outline-none focus:ring-0 resize-none overflow-hidden text-sm leading-relaxed
-          ${bullet.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-700'}
-          ${bullet.status === 'cancelled' ? 'text-gray-300 line-through' : ''}
-          ${bullet.type === 'event' ? 'font-medium' : ''}
-        `}
-        onInput={(e) => {
-          const target = e.target as HTMLTextAreaElement;
-          target.style.height = 'auto';
-          target.style.height = target.scrollHeight + 'px';
-        }}
-        ref={(el) => {
-          if (el) {
-            el.style.height = 'auto';
-            el.style.height = el.scrollHeight + 'px';
-          }
-        }}
-      />
+      <div className="flex-1 relative">
+        <label htmlFor={`bullet-${bullet.id}`} className="sr-only">
+          {bullet.type} content
+        </label>
+        <textarea 
+          id={`bullet-${bullet.id}`}
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              if (e.shiftKey) decreaseIndent();
+              else increaseIndent();
+            }
+          }}
+          placeholder={bullet.type === 'task' ? 'Add a task...' : bullet.type === 'event' ? 'Add an event...' : 'Add a note...'}
+          className={`
+            w-full py-1 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white rounded px-1 transition-all text-sm leading-relaxed resize-none overflow-hidden
+            ${bullet.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-700'}
+            ${bullet.status === 'cancelled' ? 'text-gray-300 line-through' : ''}
+            ${bullet.type === 'event' ? 'font-medium' : ''}
+          `}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = target.scrollHeight + 'px';
+          }}
+          ref={(el) => {
+            if (el) {
+              el.style.height = 'auto';
+              el.style.height = el.scrollHeight + 'px';
+            }
+          }}
+        />
+        {/* Read-only view with clickable tags when not focused could be added here for better UX */}
+      </div>
 
       <button 
         onClick={() => deleteBullet(bullet.id)}
-        className="mt-1.5 p-1 text-gray-200 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
+        className="mt-1.5 p-1 text-gray-200 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 rounded outline-none"
+        aria-label={`Delete ${bullet.type}`}
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
