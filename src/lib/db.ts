@@ -12,6 +12,7 @@ export interface Bullet {
   order: number;
   indent: number;
   tags?: string[];
+  links?: string[]; // IDs or Titles of linked logs/collections
 }
 
 export interface Collection {
@@ -33,6 +34,19 @@ export interface HabitEntry {
   completed: boolean;
 }
 
+export interface JournalLink {
+  id: string;
+  sourceId: string; // ID of the log/collection containing the link
+  targetTitle: string; // Title or Date linked to
+  targetId?: string; // Resolved ID if it exists
+}
+
+export interface DayMood {
+  date: string;
+  mood: number; // 1-5
+  energy: number; // 1-5
+}
+
 interface BulletJournalDB extends DBSchema {
   bullets: {
     key: string;
@@ -42,6 +56,7 @@ interface BulletJournalDB extends DBSchema {
   collections: {
     key: string;
     value: Collection;
+    indexes: { 'by-title': string };
   };
   habits: {
     key: string;
@@ -52,12 +67,21 @@ interface BulletJournalDB extends DBSchema {
     value: HabitEntry;
     indexes: { 'by-date': string, 'by-habit': string };
   };
+  links: {
+    key: string;
+    value: JournalLink;
+    indexes: { 'by-source': string, 'by-target': string };
+  };
+  moods: {
+    key: string; // date
+    value: DayMood;
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<BulletJournalDB>>;
 
 export function initDB() {
-  dbPromise = openDB<BulletJournalDB>('bullet-journal-db', 2, {
+  dbPromise = openDB<BulletJournalDB>('bullet-journal-db', 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const bulletStore = db.createObjectStore('bullets', { keyPath: 'id' });
@@ -69,6 +93,13 @@ export function initDB() {
         const entryStore = db.createObjectStore('habitEntries', { keyPath: ['habitId', 'date'] });
         entryStore.createIndex('by-date', 'date');
         entryStore.createIndex('by-habit', 'habitId');
+      }
+      if (oldVersion < 3) {
+        const linkStore = db.createObjectStore('links', { keyPath: 'id' });
+        linkStore.createIndex('by-source', 'sourceId');
+        linkStore.createIndex('by-target', 'targetTitle');
+        db.createObjectStore('moods', { keyPath: 'date' });
+        // In some cases we might need to add index to existing store
       }
     },
   });
@@ -100,6 +131,12 @@ export async function getCollections(): Promise<Collection[]> {
   return db.getAll('collections');
 }
 
+export async function getCollectionByTitle(title: string): Promise<Collection | undefined> {
+  const db = await dbPromise;
+  const collections = await db.getAll('collections');
+  return collections.find(c => c.title.toLowerCase() === title.toLowerCase());
+}
+
 export async function saveCollection(collection: Collection) {
   const db = await dbPromise;
   return db.put('collections', collection);
@@ -107,7 +144,7 @@ export async function saveCollection(collection: Collection) {
 
 export async function deleteCollection(id: string) {
   const db = await dbPromise;
-  const tx = db.transaction(['collections', 'bullets'], 'readwrite');
+  const tx = db.transaction(['collections', 'bullets', 'links'], 'readwrite');
   await tx.objectStore('collections').delete(id);
   
   const bulletIndex = tx.objectStore('bullets').index('by-log');
@@ -157,4 +194,48 @@ export async function getHabitEntries(dateRange: string[]): Promise<HabitEntry[]
 export async function toggleHabit(habitId: string, date: string, completed: boolean) {
   const db = await dbPromise;
   return db.put('habitEntries', { habitId, date, completed });
+}
+
+// Links
+export async function saveLink(link: JournalLink) {
+  const db = await dbPromise;
+  return db.put('links', link);
+}
+
+export async function getLinksBySource(sourceId: string): Promise<JournalLink[]> {
+  const db = await dbPromise;
+  return db.getAllFromIndex('links', 'by-source', sourceId);
+}
+
+export async function getLinksByTarget(targetTitle: string): Promise<JournalLink[]> {
+  const db = await dbPromise;
+  return db.getAllFromIndex('links', 'by-target', targetTitle);
+}
+
+export async function deleteLinksBySource(sourceId: string) {
+  const db = await dbPromise;
+  const tx = db.transaction('links', 'readwrite');
+  const index = tx.store.index('by-source');
+  let cursor = await index.openCursor(IDBKeyRange.only(sourceId));
+  while (cursor) {
+    await cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
+// Moods
+export async function getMood(date: string): Promise<DayMood | undefined> {
+  const db = await dbPromise;
+  return db.get('moods', date);
+}
+
+export async function getAllMoods(): Promise<DayMood[]> {
+  const db = await dbPromise;
+  return db.getAll('moods');
+}
+
+export async function saveMood(mood: DayMood) {
+  const db = await dbPromise;
+  return db.put('moods', mood);
 }

@@ -3,28 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --accent: #2563eb;
-  --accent-light: #dbeafe;
-  --border: #e5e7eb;
+  --bg-primary: #fdfbf7;
+  --bg-secondary: #f1f3f0;
+  --accent: #6b705c;
+  --accent-light: #a5a58d;
+  --text-primary: #2f3e46;
+  --text-secondary: #52796f;
+  --border: #e0e2db;
+  --paper: #fdfcf0;
+  --sage-tint: #e9edc9;
 }
 
 [data-theme='dark'] {
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --accent: #3b82f6;
-  --accent-light: #1e3a8a;
-  --border: #374151;
+  --bg-primary: #2f3e46;
+  --bg-secondary: #354f52;
+  --text-primary: #cad2c5;
+  --text-secondary: #84a98c;
+  --accent: #84a98c;
+  --accent-light: #52796f;
+  --border: #52796f;
+  --paper: #354f52;
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -45,4 +48,16 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
 }

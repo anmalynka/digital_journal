@@ -41,32 +41,32 @@ const Calendar: React.FC = () => {
   ];
 
   return (
-    <nav className="p-4 bg-white rounded-xl shadow-sm border border-gray-100" aria-label="Daily log navigation">
+    <nav className="p-4 bg-white/50 rounded-2xl border border-black/5" aria-label="Daily log navigation">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-gray-900" aria-live="polite">
+        <h2 className="text-[10px] font-black text-[#2f3e46] uppercase tracking-widest" aria-live="polite">
           {monthNames[month]} {year}
         </h2>
         <div className="flex gap-1">
           <button 
             onClick={prevMonth} 
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
-            aria-label={`Go to ${monthNames[month === 0 ? 11 : month - 1]} ${month === 0 ? year - 1 : year}`}
+            className="p-1.5 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-black/5"
+            aria-label={`Go to ${monthNames[month === 0 ? 11 : month - 1]}`}
           >
-            <ChevronLeft className="w-4 h-4 text-gray-600" />
+            <ChevronLeft className="w-3.5 h-3.5 text-[#52796f]" />
           </button>
           <button 
             onClick={nextMonth} 
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
-            aria-label={`Go to ${monthNames[month === 11 ? 0 : month + 1]} ${month === 11 ? year + 1 : year}`}
+            className="p-1.5 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-black/5"
+            aria-label={`Go to ${monthNames[month === 11 ? 0 : month + 1]}`}
           >
-            <ChevronRight className="w-4 h-4 text-gray-600" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#52796f]" />
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {dayNames.map(d => (
-          <div key={d} className="text-[10px] font-bold text-gray-400 uppercase text-center" aria-hidden="true">
+          <div key={d} className="text-[9px] font-black text-[#a5a58d] uppercase text-center opacity-60" aria-hidden="true">
             {d[0]}
           </div>
         ))}
@@ -78,21 +78,16 @@ const Calendar: React.FC = () => {
         ))}
         {Array.from({ length: days }).map((_, i) => {
           const day = i + 1;
-          const dateStr = new Date(year, month, day).toLocaleDateString(undefined, { 
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-          });
           return (
             <button
               key={day}
               onClick={() => selectDate(day)}
               role="gridcell"
-              aria-label={dateStr}
               aria-pressed={isSelected(day)}
-              aria-current={isToday(day) ? 'date' : undefined}
               className={`
-                aspect-square flex items-center justify-center text-xs rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500
-                ${isSelected(day) ? 'bg-blue-600 text-white font-bold scale-110 shadow-md' : 'hover:bg-blue-50 text-gray-600'}
-                ${isToday(day) && !isSelected(day) ? 'border border-blue-200 text-blue-600 font-bold' : ''}
+                aspect-square flex items-center justify-center text-[10px] font-black rounded-lg transition-all outline-none
+                ${isSelected(day) ? 'bg-[#6b705c] text-white shadow-lg' : 'hover:bg-white text-[#52796f]'}
+                ${isToday(day) && !isSelected(day) ? 'bg-[#e9edc9] text-[#6b705c]' : ''}
               `}
             >
               {day}

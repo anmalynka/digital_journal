@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useJournal } from '../context/JournalContext';
-import { ArrowRight, Check, X, Clock, AlertCircle } from 'lucide-react';
+import { ArrowRight, Check, X, Clock,  } from 'lucide-react';
 import * as db from '../lib/db';
 import { Bullet } from '../lib/db';
 
 const MigrationWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { state, updateBullet, dispatch } = useJournal();
+  const { state, updateBullet } = useJournal();
   const [pastTasks, setPastTasks] = useState<Bullet[]>([]);
   const [loading, setLoading] = useState(true);
 

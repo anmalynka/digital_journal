@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useJournal } from '../context/JournalContext';
-import { Plus, Trash2, Check, X, Calendar as CalendarIcon } from 'lucide-react';
+import { Trash2, Check, Calendar as CalendarIcon } from 'lucide-react';
 import * as db from '../lib/db';
 
 const HabitTracker: React.FC = () => {
@@ -35,22 +35,22 @@ const HabitTracker: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-8 py-12">
       <header className="mb-12">
-        <div className="flex items-center gap-2 text-blue-600 mb-2 font-bold uppercase tracking-wider text-xs">
-          <CalendarIcon className="w-3.5 h-3.5" /> Habit Tracker
+        <div className="flex items-center gap-3 text-[#52796f] mb-4 font-black uppercase tracking-[0.25em] text-[10px] opacity-60">
+          <CalendarIcon className="w-4 h-4" /> Habit Consistency
         </div>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Consistency is Key</h1>
+        <h1 className="text-5xl font-black text-[#2f3e46] tracking-tight">Daily Rituals</h1>
       </header>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-black/5 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50">
-                <th className="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[200px]">Habit</th>
+              <tr className="bg-black/5">
+                <th className="p-6 text-[10px] font-black text-[#2f3e46] uppercase tracking-[0.2em] min-w-[200px]">Ritual</th>
                 {days.map(date => (
-                  <th key={date} className="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
+                  <th key={date} className="p-4 text-[9px] font-black text-[#a5a58d] uppercase tracking-widest text-center opacity-80">
                     {new Date(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                   </th>
                 ))}
@@ -59,17 +59,17 @@ const HabitTracker: React.FC = () => {
             </thead>
             <tbody>
               {state.habits.map(habit => (
-                <tr key={habit.id} className="border-t border-gray-50 hover:bg-gray-50/30 transition-colors">
-                  <td className="p-4 text-sm font-bold text-gray-700">{habit.title}</td>
+                <tr key={habit.id} className="border-t border-black/5 hover:bg-black/5 transition-colors">
+                  <td className="p-6 text-sm font-bold text-[#2f3e46]">{habit.title}</td>
                   {days.map(date => (
                     <td key={date} className="p-2 text-center">
                       <button
                         onClick={() => toggleHabit(habit.id, date, !isCompleted(habit.id, date))}
                         className={`
-                          w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                          w-8 h-8 rounded-xl flex items-center justify-center transition-all
                           ${isCompleted(habit.id, date) 
-                            ? 'bg-green-500 text-white shadow-lg shadow-green-100' 
-                            : 'bg-gray-100 text-transparent hover:bg-gray-200'}
+                            ? 'bg-[#6b705c] text-white shadow-lg shadow-[#6b705c]/20' 
+                            : 'bg-black/5 text-transparent hover:bg-black/10'}
                         `}
                       >
                         <Check className="w-4 h-4" />
@@ -79,7 +79,7 @@ const HabitTracker: React.FC = () => {
                   <td className="p-4">
                     <button 
                       onClick={() => deleteHabit(habit.id)}
-                      className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                      className="p-2 text-[#a5a58d] hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -90,19 +90,19 @@ const HabitTracker: React.FC = () => {
           </table>
         </div>
 
-        <div className="p-6 bg-gray-50/50 border-t border-gray-100">
+        <div className="p-8 bg-black/5 border-t border-black/5">
           <form onSubmit={handleAddHabit} className="flex gap-4">
             <input 
-              placeholder="New habit name..."
+              placeholder="New ritual name..."
               value={newHabitTitle}
               onChange={e => setNewHabitTitle(e.target.value)}
-              className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className="flex-1 px-6 py-3 bg-white border-none rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6b705c]/20 transition-all shadow-sm"
             />
             <button 
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
+              className="px-8 py-3 bg-[#2f3e46] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-black shadow-lg shadow-black/20 transition-all"
             >
-              Add Habit
+              Add Ritual
             </button>
           </form>
         </div>
