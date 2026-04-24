@@ -4,7 +4,7 @@ import {
   Plus, Calendar as CalendarIcon, List, Clock, TrendingUp, Zap, 
   ArrowRightLeft, Sun, Coffee, Sparkles
 } from 'lucide-react';
-import Bullet from './Bullet';
+import Block from './Block';
 import SortableItem from './SortableItem';
 import HabitTracker from './HabitTracker';
 import CalendarPlanner from './CalendarPlanner';
@@ -13,6 +13,10 @@ import YearInPixels from './YearInPixels';
 import MoodSelector from './MoodSelector';
 import GraphView from './GraphView';
 import ZenGarden from './ZenGarden';
+import LibraryView from './LibraryView';
+import DashboardView from './DashboardView';
+import OracleView from './OracleView';
+import SetupProject from './SetupProject';
 import * as db from '../lib/db';
 import { 
   DndContext, 
@@ -31,10 +35,10 @@ import {
 } from '@dnd-kit/sortable';
 
 const MainView: React.FC = () => {
-  const { state, addBullet, reorderBullets, dispatch, navigatetoLink } = useJournal();
+  const { state, addBlock, reorderBlocks, dispatch, navigatetoLink } = useJournal();
   const [isMigrationOpen, setIsMigrationOpen] = useState(false);
   const [isRitualOpen, setIsRitualOpen] = useState(false);
-  const [weeklyBullets, setWeeklyBullets] = useState<Record<string, any[]>>({});
+  const [weeklyBlocks, setWeeklyBlocks] = useState<Record<string, any[]>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -63,13 +67,13 @@ const MainView: React.FC = () => {
           const d = new Date(start);
           d.setDate(d.getDate() + i);
           const dateStr = d.toISOString().split('T')[0];
-          data[dateStr] = await db.getBullets(dateStr);
+          data[dateStr] = await db.getBlocks(dateStr);
         }
-        setWeeklyBullets(data);
+        setWeeklyBlocks(data);
       };
       loadWeekly();
     }
-  }, [state.activeView, state.selectedDate, state.bullets]);
+  }, [state.activeView, state.selectedDate, state.blocks]);
   
   const title = useMemo(() => {
     if (state.activeView === 'search') return `Search Results for "${state.searchTerm}"`;
@@ -91,19 +95,20 @@ const MainView: React.FC = () => {
   }, [state.selectedDate, state.selectedCollectionId, state.collections, state.activeView, state.searchTerm]);
 
   const stats = useMemo(() => {
-    const total = state.bullets.filter(b => b.type === 'task').length;
-    const done = state.bullets.filter(b => b.type === 'task' && b.status === 'done').length;
+    if (!state.blocks) return { total: 0, done: 0, progress: 0 };
+    const total = state.blocks.filter(b => b.type === 'task').length;
+    const done = state.blocks.filter(b => b.type === 'task' && b.status === 'done').length;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
     return { total, done, progress };
-  }, [state.bullets]);
+  }, [state.blocks]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = state.bullets.findIndex(b => b.id === active.id);
-      const newIndex = state.bullets.findIndex(b => b.id === over.id);
-      const newBullets = arrayMove(state.bullets, oldIndex, newIndex);
-      await reorderBullets(newBullets);
+    if (over && active.id !== over.id && state.blocks) {
+      const oldIndex = state.blocks.findIndex(b => b.id === active.id);
+      const newIndex = state.blocks.findIndex(b => b.id === over.id);
+      const newBlocks = arrayMove(state.blocks, oldIndex, newIndex);
+      await reorderBlocks(newBlocks);
     }
   };
 
@@ -111,9 +116,13 @@ const MainView: React.FC = () => {
   if (state.activeView === 'calendar') return <CalendarPlanner />;
   if (state.activeView === 'pixels') return <YearInPixels />;
   if (state.activeView === 'graph') return <GraphView />;
+  if (state.activeView === 'library') return <LibraryView />;
+  if (state.activeView === 'dashboard') return <DashboardView />;
+  if (state.activeView === 'oracle') return <OracleView />;
 
   return (
     <main className="max-w-4xl mx-auto px-8 py-12 pb-40" aria-labelledby="main-title">
+      {!state.hasCompletedSetup && <SetupProject />}
       <header className="mb-12">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-[#52796f] font-black uppercase tracking-[0.2em] text-[10px] opacity-60">
@@ -169,13 +178,13 @@ const MainView: React.FC = () => {
 
       {state.activeView === 'weekly' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(weeklyBullets).map(([date, bullets]) => (
+          {Object.entries(weeklyBlocks).map(([date, blocks]) => (
             <div key={date} className="p-8 bg-black/5 rounded-[2rem] border border-black/5 hover:bg-white hover:shadow-xl transition-all">
               <h3 className="text-[10px] font-black text-[#2f3e46] uppercase tracking-[0.2em] mb-6 border-b border-black/5 pb-3">
                 {new Date(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
               </h3>
               <div className="space-y-2">
-                {bullets.map(b => (
+                {blocks.map(b => (
                   <div key={b.id} className="text-sm py-1 flex gap-3 items-start">
                     <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'done' ? 'bg-[#6b705c]' : 'bg-[#a5a58d]'}`} />
                     <span className={b.status === 'done' ? 'line-through text-[#52796f] opacity-50' : 'text-[#2f3e46] font-medium'}>
@@ -197,26 +206,25 @@ const MainView: React.FC = () => {
           ))}
         </div>
       ) : (
-        <section className="space-y-1" aria-label="Bullet log entries">
+        <section className="space-y-1" aria-label="Block log entries">
           <DndContext 
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
             <SortableContext 
-              items={state.bullets.map(b => b.id)}
+              items={state.blocks?.map(b => b.id) || []}
               strategy={verticalListSortingStrategy}
             >
-              {state.bullets.map(bullet => (
-                <SortableItem key={bullet.id} id={bullet.id}>
-                  <Bullet bullet={bullet} />
+              {state.blocks?.map(block => (
+                <SortableItem key={block.id} id={block.id}>
+                  <Block block={block} />
                 </SortableItem>
               ))}
             </SortableContext>
           </DndContext>
-
           <button 
-            onClick={() => addBullet(currentLogId)}
+            onClick={() => addBlock(currentLogId)}
             className="group w-full flex items-center gap-4 px-6 py-5 mt-10 text-[#a5a58d] hover:text-[#6b705c] hover:bg-[#6b705c]/5 rounded-[2rem] border-2 border-dashed border-transparent hover:border-[#6b705c]/20 transition-all outline-none"
             aria-label="Add new entry"
           >
@@ -250,7 +258,7 @@ const MainView: React.FC = () => {
         </section>
       )}
 
-      {state.bullets.length === 0 && state.activeView !== 'weekly' && (
+      {(state.blocks?.length || 0) === 0 && state.activeView !== 'weekly' && (
         <div className="mt-24 text-center p-24 bg-black/5 rounded-[4rem] border-4 border-dashed border-black/5">
           <Clock className="w-20 h-20 text-[#a5a58d]/20 mx-auto mb-8" />
           <p className="text-[#a5a58d] font-black tracking-tight uppercase text-xs">Tabula Rasa. Your {state.activeView} is waiting.</p>

@@ -11,7 +11,7 @@ const GraphView: React.FC = () => {
 
   useEffect(() => {
     async function loadGraph() {
-      const allBullets = await db.getAllBullets();
+      const allBlocks = await db.getAllBlocks();
       const allCollections = await db.getCollections();
       
       const nodeMap = new Map();
@@ -23,7 +23,7 @@ const GraphView: React.FC = () => {
       });
 
       // Parse bullets for links and dates
-      allBullets.forEach(b => {
+      allBlocks.forEach(b => {
         if (!nodeMap.has(b.logId)) {
           nodeMap.set(b.logId, { id: b.logId, title: b.logId, type: 'date' });
         }

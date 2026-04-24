@@ -6,10 +6,10 @@ const ZenGarden: React.FC = () => {
   const { state } = useJournal();
 
   const streak = useMemo(() => {
-    // Very simple streak calculation: how many consecutive days with at least one bullet
+    // Very simple streak calculation: how many consecutive days with at least one block
     // For a real app, this would be a more complex query
-    return Math.min(10, state.bullets.length > 0 ? 3 : 0); // Placeholder for now
-  }, [state.bullets]);
+    return Math.min(10, (state.blocks?.length || 0) > 0 ? 3 : 0); // Placeholder for now
+  }, [state.blocks]);
 
   return (
     <div className="flex flex-col items-center p-6 bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 mb-8 relative overflow-hidden group">

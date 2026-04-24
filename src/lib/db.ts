@@ -1,24 +1,46 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
-export type BulletType = 'task' | 'event' | 'note';
+export type BlockType = 'bullet' | 'task' | 'event' | 'note' | 'heading1' | 'heading2' | 'checklist' | 'image' | 'file' | 'callout' | 'canvas' | 'timer';
 export type BulletStatus = 'todo' | 'done' | 'migrated' | 'scheduled' | 'cancelled';
+export type DecorationType = 'sticker' | 'tape' | 'highlight';
 
-export interface Bullet {
+export interface Block {
   id: string;
-  logId: string; // date string like '2026-04-21' or collection id
+  logId: string;
   content: string;
-  type: BulletType;
+  type: BlockType;
   status: BulletStatus;
   order: number;
   indent: number;
   tags?: string[];
-  links?: string[]; // IDs or Titles of linked logs/collections
+  links?: string[];
+  fileData?: Blob;
+  fileName?: string;
+  canvasData?: string; // DataURL for sketches
+  rotation?: number;
+  lockedUntil?: string; // ISO date for time capsules
+  timerData?: {
+    duration: number;
+    completed: boolean;
+  };
+}
+
+export interface Decoration {
+  id: string;
+  logId: string;
+  type: DecorationType;
+  content: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
 }
 
 export interface Collection {
   id: string;
   title: string;
   icon?: string;
+  volumeId?: string; // For grouping into library books
 }
 
 export interface Habit {
@@ -36,21 +58,23 @@ export interface HabitEntry {
 
 export interface JournalLink {
   id: string;
-  sourceId: string; // ID of the log/collection containing the link
-  targetTitle: string; // Title or Date linked to
-  targetId?: string; // Resolved ID if it exists
+  sourceId: string;
+  targetTitle: string;
+  targetId?: string;
 }
 
 export interface DayMood {
   date: string;
-  mood: number; // 1-5
-  energy: number; // 1-5
+  mood: number;
+  energy: number;
+  steps?: number;
+  sleep?: number;
 }
 
 interface BulletJournalDB extends DBSchema {
-  bullets: {
+  blocks: {
     key: string;
-    value: Bullet;
+    value: Block;
     indexes: { 'by-log': string };
   };
   collections: {
@@ -63,7 +87,7 @@ interface BulletJournalDB extends DBSchema {
     value: Habit;
   };
   habitEntries: {
-    key: [string, string]; // [habitId, date]
+    key: [string, string];
     value: HabitEntry;
     indexes: { 'by-date': string, 'by-habit': string };
   };
@@ -73,18 +97,23 @@ interface BulletJournalDB extends DBSchema {
     indexes: { 'by-source': string, 'by-target': string };
   };
   moods: {
-    key: string; // date
+    key: string;
     value: DayMood;
+  };
+  decorations: {
+    key: string;
+    value: Decoration;
+    indexes: { 'by-log': string };
   };
 }
 
 let dbPromise: Promise<IDBPDatabase<BulletJournalDB>>;
 
 export function initDB() {
-  dbPromise = openDB<BulletJournalDB>('bullet-journal-db', 3, {
+  dbPromise = openDB<BulletJournalDB>('bullet-journal-db', 6, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
-        const bulletStore = db.createObjectStore('bullets', { keyPath: 'id' });
+        const bulletStore = db.createObjectStore('blocks' as any, { keyPath: 'id' });
         bulletStore.createIndex('by-log', 'logId');
         db.createObjectStore('collections', { keyPath: 'id' });
       }
@@ -99,31 +128,43 @@ export function initDB() {
         linkStore.createIndex('by-source', 'sourceId');
         linkStore.createIndex('by-target', 'targetTitle');
         db.createObjectStore('moods', { keyPath: 'date' });
-        // In some cases we might need to add index to existing store
+      }
+      if (oldVersion < 4) {
+        if (!db.objectStoreNames.contains('blocks')) {
+           const blockStore = db.createObjectStore('blocks', { keyPath: 'id' });
+           blockStore.createIndex('by-log', 'logId');
+        }
+      }
+      if (oldVersion < 5) {
+        const decoStore = db.createObjectStore('decorations', { keyPath: 'id' });
+        decoStore.createIndex('by-log', 'logId');
+      }
+      if (oldVersion < 6) {
+        // Biometric update handled via schema extension
       }
     },
   });
 }
 
-export async function getBullets(logId: string): Promise<Bullet[]> {
+export async function getBlocks(logId: string): Promise<Block[]> {
   const db = await dbPromise;
-  const bullets = await db.getAllFromIndex('bullets', 'by-log', logId);
-  return bullets.sort((a, b) => a.order - b.order);
+  const blocks = await db.getAllFromIndex('blocks', 'by-log', logId);
+  return blocks.sort((a, b) => a.order - b.order);
 }
 
-export async function getAllBullets(): Promise<Bullet[]> {
+export async function getAllBlocks(): Promise<Block[]> {
   const db = await dbPromise;
-  return db.getAll('bullets');
+  return db.getAll('blocks');
 }
 
-export async function saveBullet(bullet: Bullet) {
+export async function saveBlock(block: Block) {
   const db = await dbPromise;
-  return db.put('bullets', bullet);
+  return db.put('blocks', block);
 }
 
-export async function deleteBullet(id: string) {
+export async function deleteBlock(id: string) {
   const db = await dbPromise;
-  return db.delete('bullets', id);
+  return db.delete('blocks', id);
 }
 
 export async function getCollections(): Promise<Collection[]> {
@@ -144,11 +185,11 @@ export async function saveCollection(collection: Collection) {
 
 export async function deleteCollection(id: string) {
   const db = await dbPromise;
-  const tx = db.transaction(['collections', 'bullets', 'links'], 'readwrite');
+  const tx = db.transaction(['collections', 'blocks', 'links'], 'readwrite');
   await tx.objectStore('collections').delete(id);
   
-  const bulletIndex = tx.objectStore('bullets').index('by-log');
-  let cursor = await bulletIndex.openCursor(IDBKeyRange.only(id));
+  const blockIndex = tx.objectStore('blocks').index('by-log');
+  let cursor = await blockIndex.openCursor(IDBKeyRange.only(id));
   while (cursor) {
     await cursor.delete();
     cursor = await cursor.continue();
@@ -238,4 +279,20 @@ export async function getAllMoods(): Promise<DayMood[]> {
 export async function saveMood(mood: DayMood) {
   const db = await dbPromise;
   return db.put('moods', mood);
+}
+
+// Decorations
+export async function getDecorations(logId: string): Promise<Decoration[]> {
+  const db = await dbPromise;
+  return db.getAllFromIndex('decorations', 'by-log', logId);
+}
+
+export async function saveDecoration(deco: Decoration) {
+  const db = await dbPromise;
+  return db.put('decorations', deco);
+}
+
+export async function deleteDecoration(id: string) {
+  const db = await dbPromise;
+  return db.delete('decorations', id);
 }

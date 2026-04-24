@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useJournal } from '../context/JournalContext';
 import { ArrowRight, Check, X, Clock,  } from 'lucide-react';
 import * as db from '../lib/db';
-import { Bullet } from '../lib/db';
+import { Block } from '../lib/db';
 
 const MigrationWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { state, updateBullet } = useJournal();
-  const [pastTasks, setPastTasks] = useState<Bullet[]>([]);
+  const { state, updateBlock } = useJournal();
+  const [pastTasks, setPastTasks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function findPastTasks() {
-      const all = await db.getAllBullets();
+      const all = await db.getAllBlocks();
       const past = all.filter(b => 
         b.type === 'task' && 
         b.status === 'todo' && 
@@ -24,25 +24,25 @@ const MigrationWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     findPastTasks();
   }, [state.selectedDate]);
 
-  const migrateTask = async (task: Bullet) => {
+  const migrateTask = async (task: Block) => {
     // 1. Mark old task as migrated
-    await updateBullet({ ...task, status: 'migrated' });
+    await updateBlock({ ...task, status: 'migrated' });
     
     // 2. Create new task on current date
-    const newTask: Bullet = {
+    const newTask: Block = {
       ...task,
       id: crypto.randomUUID(),
       logId: state.selectedDate,
       status: 'todo',
     };
-    await db.saveBullet(newTask);
+    await db.saveBlock(newTask);
     
     // 3. Update local state
     setPastTasks(prev => prev.filter(t => t.id !== task.id));
   };
 
-  const cancelTask = async (task: Bullet) => {
-    await updateBullet({ ...task, status: 'cancelled' });
+  const cancelTask = async (task: Block) => {
+    await updateBlock({ ...task, status: 'cancelled' });
     setPastTasks(prev => prev.filter(t => t.id !== task.id));
   };
 

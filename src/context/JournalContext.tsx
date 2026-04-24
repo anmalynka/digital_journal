@@ -1,23 +1,25 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import * as db from '../lib/db';
-import { Bullet, Collection, Habit, HabitEntry, JournalLink, DayMood } from '../lib/db';
+import { Block, Collection, Habit, HabitEntry, JournalLink, DayMood, BlockType, Decoration } from '../lib/db';
 
-export type JournalView = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'habit' | 'search' | 'collection' | 'calendar' | 'graph' | 'pixels';
-export type BookStyle = 'modern' | 'minimalist';
+export type JournalView = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'habit' | 'search' | 'collection' | 'calendar' | 'graph' | 'pixels' | 'library' | 'dashboard' | 'oracle';
+export type BookStyle = 'modern' | 'minimalist' | 'parchment' | 'watercolor';
 
 interface JournalState {
-  selectedDate: string; // ISO date string 'YYYY-MM-DD'
+  selectedDate: string;
   selectedCollectionId: string | null;
   activeView: JournalView;
   bookStyle: BookStyle;
   isBookOpen: boolean;
-  bullets: Bullet[];
+  blocks: Block[];
   collections: Collection[];
   habits: Habit[];
   habitEntries: HabitEntry[];
   links: JournalLink[];
   backlinks: JournalLink[];
   moods: DayMood[];
+  decorations: Decoration[];
+  hasCompletedSetup: boolean;
   loading: boolean;
   searchTerm: string;
   theme: string;
@@ -25,38 +27,43 @@ interface JournalState {
 
 type JournalAction =
   | { type: 'SET_DATE'; payload: string }
+  | { type: 'COMPLETE_SETUP' }
   | { type: 'SET_COLLECTION'; payload: string | null }
   | { type: 'SET_VIEW'; payload: JournalView }
   | { type: 'SET_BOOK_STYLE'; payload: BookStyle }
   | { type: 'SET_BOOK_OPEN'; payload: boolean }
-  | { type: 'SET_BULLETS'; payload: Bullet[] }
+  | { type: 'SET_BLOCKS'; payload: Block[] }
   | { type: 'SET_COLLECTIONS'; payload: Collection[] }
   | { type: 'SET_HABITS'; payload: Habit[] }
   | { type: 'SET_HABIT_ENTRIES'; payload: HabitEntry[] }
   | { type: 'SET_LINKS'; payload: JournalLink[] }
   | { type: 'SET_BACKLINKS'; payload: JournalLink[] }
   | { type: 'SET_MOODS'; payload: DayMood[] }
+  | { type: 'SET_DECORATIONS'; payload: Decoration[] }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_SEARCH'; payload: string }
   | { type: 'SET_THEME'; payload: string }
-  | { type: 'ADD_BULLET'; payload: Bullet }
-  | { type: 'UPDATE_BULLET'; payload: Bullet }
-  | { type: 'DELETE_BULLET'; payload: string }
+  | { type: 'ADD_BLOCK'; payload: Block }
+  | { type: 'UPDATE_BLOCK'; payload: Block }
+  | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'ADD_COLLECTION'; payload: Collection }
   | { type: 'DELETE_COLLECTION'; payload: string }
   | { type: 'ADD_HABIT'; payload: Habit }
   | { type: 'UPDATE_HABIT'; payload: Habit }
   | { type: 'DELETE_HABIT'; payload: string }
   | { type: 'UPDATE_HABIT_ENTRY'; payload: HabitEntry }
-  | { type: 'UPDATE_MOOD'; payload: DayMood };
+  | { type: 'UPDATE_MOOD'; payload: DayMood }
+  | { type: 'ADD_DECORATION'; payload: Decoration }
+  | { type: 'UPDATE_DECORATION'; payload: Decoration }
+  | { type: 'DELETE_DECORATION'; payload: string };
 
 const JournalContext = createContext<{
   state: JournalState;
   dispatch: React.Dispatch<JournalAction>;
-  addBullet: (logId: string) => Promise<void>;
-  updateBullet: (bullet: Bullet) => Promise<void>;
-  deleteBullet: (id: string) => Promise<void>;
-  reorderBullets: (bullets: Bullet[]) => Promise<void>;
+  addBlock: (logId: string, type?: BlockType) => Promise<void>;
+  updateBlock: (block: Block) => Promise<void>;
+  deleteBlock: (id: string) => Promise<void>;
+  reorderBlocks: (blocks: Block[]) => Promise<void>;
   addCollection: (title: string) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
   addHabit: (title: string) => Promise<void>;
@@ -64,12 +71,18 @@ const JournalContext = createContext<{
   deleteHabit: (id: string) => Promise<void>;
   saveMood: (mood: DayMood) => Promise<void>;
   navigatetoLink: (target: string) => Promise<void>;
+  addDecoration: (deco: Omit<Decoration, 'id' | 'logId'>) => Promise<void>;
+  updateDecoration: (deco: Decoration) => Promise<void>;
+  deleteDecoration: (id: string) => Promise<void>;
 } | null>(null);
 
 function journalReducer(state: JournalState, action: JournalAction): JournalState {
   switch (action.type) {
     case 'SET_DATE':
       return { ...state, selectedDate: action.payload, selectedCollectionId: null, activeView: 'daily' };
+    case 'COMPLETE_SETUP':
+      localStorage.setItem('bujo_setup_complete', 'true');
+      return { ...state, hasCompletedSetup: true, isBookOpen: true };
     case 'SET_COLLECTION':
       return { ...state, selectedCollectionId: action.payload, activeView: 'collection' };
     case 'SET_VIEW':
@@ -78,8 +91,8 @@ function journalReducer(state: JournalState, action: JournalAction): JournalStat
       return { ...state, bookStyle: action.payload };
     case 'SET_BOOK_OPEN':
       return { ...state, isBookOpen: action.payload };
-    case 'SET_BULLETS':
-      return { ...state, bullets: action.payload };
+    case 'SET_BLOCKS':
+      return { ...state, blocks: action.payload };
     case 'SET_COLLECTIONS':
       return { ...state, collections: action.payload };
     case 'SET_HABITS':
@@ -92,18 +105,20 @@ function journalReducer(state: JournalState, action: JournalAction): JournalStat
       return { ...state, backlinks: action.payload };
     case 'SET_MOODS':
       return { ...state, moods: action.payload };
+    case 'SET_DECORATIONS':
+      return { ...state, decorations: action.payload };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_SEARCH':
       return { ...state, searchTerm: action.payload, activeView: 'search' };
     case 'SET_THEME':
       return { ...state, theme: action.payload };
-    case 'ADD_BULLET':
-      return { ...state, bullets: [...state.bullets, action.payload].sort((a, b) => a.order - b.order) };
-    case 'UPDATE_BULLET':
-      return { ...state, bullets: state.bullets.map(b => b.id === action.payload.id ? action.payload : b) };
-    case 'DELETE_BULLET':
-      return { ...state, bullets: state.bullets.filter(b => b.id !== action.payload) };
+    case 'ADD_BLOCK':
+      return { ...state, blocks: [...(state.blocks || []), action.payload].sort((a, b) => a.order - b.order) };
+    case 'UPDATE_BLOCK':
+      return { ...state, blocks: state.blocks.map(b => b.id === action.payload.id ? action.payload : b) };
+    case 'DELETE_BLOCK':
+      return { ...state, blocks: state.blocks.filter(b => b.id !== action.payload) };
     case 'ADD_COLLECTION':
       return { ...state, collections: [...state.collections, action.payload] };
     case 'DELETE_COLLECTION':
@@ -120,6 +135,12 @@ function journalReducer(state: JournalState, action: JournalAction): JournalStat
     case 'UPDATE_MOOD':
       const filteredMoods = state.moods.filter(m => m.date !== action.payload.date);
       return { ...state, moods: [...filteredMoods, action.payload] };
+    case 'ADD_DECORATION':
+      return { ...state, decorations: [...state.decorations, action.payload] };
+    case 'UPDATE_DECORATION':
+      return { ...state, decorations: state.decorations.map(d => d.id === action.payload.id ? action.payload : d) };
+    case 'DELETE_DECORATION':
+      return { ...state, decorations: state.decorations.filter(d => d.id !== action.payload) };
     default:
       return state;
   }
@@ -132,13 +153,15 @@ export const JournalProvider: React.FC<{ children: ReactNode }> = ({ children })
     activeView: 'daily',
     bookStyle: 'minimalist',
     isBookOpen: false,
-    bullets: [],
+    blocks: [],
     collections: [],
     habits: [],
     habitEntries: [],
     links: [],
     backlinks: [],
     moods: [],
+    decorations: [],
+    hasCompletedSetup: localStorage.getItem('bujo_setup_complete') === 'true',
     loading: true,
     searchTerm: '',
     theme: 'minimal',
@@ -155,7 +178,6 @@ export const JournalProvider: React.FC<{ children: ReactNode }> = ({ children })
       dispatch({ type: 'SET_MOODS', payload: moods });
       dispatch({ type: 'SET_LOADING', payload: false });
       
-      // Auto-open book after a small delay
       setTimeout(() => {
         dispatch({ type: 'SET_BOOK_OPEN', payload: true });
       }, 500);
@@ -166,17 +188,17 @@ export const JournalProvider: React.FC<{ children: ReactNode }> = ({ children })
   const currentLogId = state.selectedCollectionId || state.selectedDate;
 
   useEffect(() => {
-    async function loadBullets() {
+    async function loadBlocks() {
       if (state.activeView === 'search') {
-        const all = await db.getAllBullets();
+        const all = await db.getAllBlocks();
         const filtered = all.filter(b => 
           b.content.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
           (b.tags && b.tags.some(t => t.toLowerCase().includes(state.searchTerm.toLowerCase())))
         );
-        dispatch({ type: 'SET_BULLETS', payload: filtered });
+        dispatch({ type: 'SET_BLOCKS', payload: filtered });
       } else {
-        const bullets = await db.getBullets(currentLogId);
-        dispatch({ type: 'SET_BULLETS', payload: bullets });
+        const blocks = await db.getBlocks(currentLogId);
+        dispatch({ type: 'SET_BLOCKS', payload: blocks });
       }
     }
 
@@ -190,58 +212,60 @@ export const JournalProvider: React.FC<{ children: ReactNode }> = ({ children })
       dispatch({ type: 'SET_BACKLINKS', payload: backlinks });
     }
 
+    async function loadDecorations() {
+      const decos = await db.getDecorations(currentLogId);
+      dispatch({ type: 'SET_DECORATIONS', payload: decos });
+    }
+
     if (!state.loading) {
-      loadBullets();
+      loadBlocks();
       loadLinks();
+      loadDecorations();
     }
   }, [currentLogId, state.loading, state.activeView, state.searchTerm, state.collections]);
 
-  const addBullet = async (logId: string) => {
-    const content = '';
-    const newBullet: Bullet = {
+  const addBlock = async (logId: string, type: BlockType = 'task') => {
+    const newBlock: Block = {
       id: crypto.randomUUID(),
       logId,
-      content,
-      type: 'task',
+      content: '',
+      type,
       status: 'todo',
-      order: state.bullets.length,
+      order: state.blocks?.length || 0,
       indent: 0,
     };
-    await db.saveBullet(newBullet);
-    dispatch({ type: 'ADD_BULLET', payload: newBullet });
+    await db.saveBlock(newBlock);
+    dispatch({ type: 'ADD_BLOCK', payload: newBlock });
   };
 
-  const updateBullet = async (bullet: Bullet) => {
-    const tags = bullet.content.match(/#\w+/g)?.map(t => t.slice(1)) || [];
-    const linkMatches = bullet.content.match(/\[\[(.*?)\]\]/g)?.map(m => m.slice(2, -2)) || [];
-    const updated = { ...bullet, tags, links: linkMatches };
+  const updateBlock = async (block: Block) => {
+    const tags = block.content.match(/#\w+/g)?.map(t => t.slice(1)) || [];
+    const linkMatches = block.content.match(/\[\[(.*?)\]\]/g)?.map(m => m.slice(2, -2)) || [];
+    const updated = { ...block, tags, links: linkMatches };
     
-    await db.saveBullet(updated);
-    
-    // Update links store
-    await db.deleteLinksBySource(bullet.logId);
+    await db.saveBlock(updated);
+    await db.deleteLinksBySource(block.logId);
     for (const target of linkMatches) {
       await db.saveLink({
         id: crypto.randomUUID(),
-        sourceId: bullet.logId,
+        sourceId: block.logId,
         targetTitle: target
       });
     }
-
-    dispatch({ type: 'UPDATE_BULLET', payload: updated });
+    dispatch({ type: 'UPDATE_BLOCK', payload: updated });
   };
 
-  const deleteBullet = async (id: string) => {
-    await db.deleteBullet(id);
-    dispatch({ type: 'DELETE_BULLET', payload: id });
+  const deleteBlock = async (id: string) => {
+    await db.deleteBlock(id);
+    dispatch({ type: 'DELETE_BLOCK', payload: id });
   };
 
-  const reorderBullets = async (bullets: Bullet[]) => {
-    const updated = bullets.map((b, i) => ({ ...b, order: i }));
+  const reorderBlocks = async (blocks: Block[]) => {
+    const updated = blocks.map((b, i) => ({ ...b, order: i }));
     for (const b of updated) {
-      await db.saveBullet(b);
+      await db.saveBlock(b);
     }
-    dispatch({ type: 'SET_BULLETS', payload: updated });
+    dispatch({ type: 'SET_BLOCKS', payload: updated });
   };
 
   const addCollection = async (title: string) => {
@@ -305,13 +329,34 @@ export const JournalProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const addDecoration = async (deco: Omit<Decoration, 'id' | 'logId'>) => {
+    const newDeco: Decoration = {
+      ...deco,
+      id: crypto.randomUUID(),
+      logId: currentLogId
+    };
+    await db.saveDecoration(newDeco);
+    dispatch({ type: 'ADD_DECORATION', payload: newDeco });
+  };
+
+  const updateDecoration = async (deco: Decoration) => {
+    await db.saveDecoration(deco);
+    dispatch({ type: 'UPDATE_DECORATION', payload: deco });
+  };
+
+  const deleteDecoration = async (id: string) => {
+    await db.deleteDecoration(id);
+    dispatch({ type: 'DELETE_DECORATION', payload: id });
+  };
+
   return (
     <JournalContext.Provider value={{ 
       state, dispatch, 
-      addBullet, updateBullet, deleteBullet, reorderBullets,
+      addBlock, updateBlock, deleteBlock, reorderBlocks,
       addCollection, deleteCollection,
       addHabit, toggleHabit, deleteHabit,
-      saveMood, navigatetoLink
+      saveMood, navigatetoLink,
+      addDecoration, updateDecoration, deleteDecoration
     }}>
       {children}
     </JournalContext.Provider>

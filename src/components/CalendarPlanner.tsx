@@ -20,7 +20,7 @@ const CalendarPlanner: React.FC = () => {
       for (let i = 1; i <= daysInMonth; i++) {
         const d = new Date(year, month, i);
         const dateStr = d.toISOString().split('T')[0];
-        data[dateStr] = await db.getBullets(dateStr);
+        data[dateStr] = await db.getBlocks(dateStr);
       }
       setMonthData(data);
     }
@@ -72,8 +72,8 @@ const CalendarPlanner: React.FC = () => {
           const day = i + 1;
           const d = new Date(year, month, day);
           const dateStr = d.toISOString().split('T')[0];
-          const bullets = monthData[dateStr] || [];
-          const tasks = bullets.filter(b => b.type === 'task');
+          const blocks = monthData[dateStr] || [];
+          const tasks = blocks.filter(b => b.type === 'task');
           const done = tasks.filter(b => b.status === 'done').length;
           
           return (
@@ -89,14 +89,14 @@ const CalendarPlanner: React.FC = () => {
                 {day}
               </span>
               <div className="flex-1 overflow-hidden space-y-1">
-                {bullets.slice(0, 3).map(b => (
+                {blocks.slice(0, 3).map(b => (
                   <div key={b.id} className="flex items-center gap-1 text-[10px] font-bold text-gray-500 truncate">
                     {b.status === 'done' ? <CheckCircle2 className="w-2.5 h-2.5 text-green-500" /> : <Circle className="w-2.5 h-2.5" />}
                     <span className={b.status === 'done' ? 'line-through opacity-50' : ''}>{b.content || 'Untitled'}</span>
                   </div>
                 ))}
-                {bullets.length > 3 && (
-                  <div className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">+{bullets.length - 3} more</div>
+                {blocks.length > 3 && (
+                  <div className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">+{blocks.length - 3} more</div>
                 )}
               </div>
               {tasks.length > 0 && (
