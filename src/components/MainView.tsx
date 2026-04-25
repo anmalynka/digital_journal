@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useJournal } from '../context/JournalContext';
 import { 
   Plus, Calendar as CalendarIcon, List, Clock, TrendingUp, Zap, 
-  ArrowRightLeft, Sun, Coffee, Sparkles
+  ArrowRightLeft, Sun, Coffee
 } from 'lucide-react';
 import Block from './Block';
 import SortableItem from './SortableItem';
@@ -76,8 +76,8 @@ const MainView: React.FC = () => {
   }, [state.activeView, state.selectedDate, state.blocks]);
   
   const title = useMemo(() => {
-    if (state.activeView === 'search') return `Search Results for "${state.searchTerm}"`;
-    if (state.activeView === 'habit') return 'Habit Tracker';
+    if (state.activeView === 'search') return `Search: "${state.searchTerm}"`;
+    if (state.activeView === 'habit') return 'Daily Rituals';
     if (state.activeView === 'weekly') return 'Weekly Overview';
     if (state.activeView === 'pixels') return 'Year in Pixels';
     if (state.activeView === 'graph') return 'Second Brain Graph';
@@ -125,7 +125,7 @@ const MainView: React.FC = () => {
       {!state.hasCompletedSetup && <SetupProject />}
       <header className="mb-12">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-[#52796f] font-black uppercase tracking-[0.2em] text-[10px] opacity-60">
+          <div className="flex items-center gap-2 text-gray-400 font-bold uppercase tracking-[0.2em] text-[10px]">
             {state.selectedCollectionId ? <List className="w-3.5 h-3.5" /> : <CalendarIcon className="w-3.5 h-3.5" />}
             {state.activeView}
           </div>
@@ -133,15 +133,15 @@ const MainView: React.FC = () => {
             {!state.selectedCollectionId && state.activeView === 'daily' && (
               <button 
                 onClick={() => setIsMigrationOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#6b705c]/10 text-[#6b705c] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#6b705c]/20 transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded transition-all hover:bg-gray-800"
               >
-                <Zap className="w-3.5 h-3.5" /> Migration
+                <Zap className="w-3.5 h-3.5 text-yellow-400" /> Migrate
               </button>
             )}
           </div>
         </div>
         
-        <h1 id="main-title" className="text-5xl font-black text-[#2f3e46] tracking-tight mb-8 leading-tight">
+        <h1 id="main-title" className="text-4xl font-black text-black tracking-tighter mb-8 leading-tight">
           {title}
         </h1>
 
@@ -153,42 +153,42 @@ const MainView: React.FC = () => {
         )}
         
         {!state.selectedCollectionId && state.activeView === 'daily' && stats.total > 0 && (
-          <section className="flex items-center gap-8 p-8 bg-black/5 rounded-[2.5rem] border border-black/5 mb-10" aria-label="Daily progress">
+          <section className="flex items-center gap-8 p-6 bg-gray-50 border border-gray-100 rounded-lg mb-10" aria-label="Daily progress">
             <div className="flex-1">
-              <div className="flex justify-between mb-4">
-                <span className="text-[10px] font-black text-[#52796f] uppercase tracking-[0.2em] flex items-center gap-2">
-                  <TrendingUp className="w-3 h-3" /> Focus Momentum
+              <div className="flex justify-between mb-3">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                  <TrendingUp className="w-3 h-3 text-[#166534]" /> Execution Progress
                 </span>
-                <span className="text-xs font-black text-[#6b705c]">{stats.progress}%</span>
+                <span className="text-xs font-black text-black">{stats.progress}%</span>
               </div>
-              <div className="h-2.5 w-full bg-black/5 rounded-full overflow-hidden p-0.5">
+              <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-[#6b705c] rounded-full transition-all duration-1000 ease-out shadow-lg shadow-[#6b705c]/20" 
+                  className="h-full bg-[#166534] transition-all duration-1000 ease-out" 
                   style={{ width: `${stats.progress}%` }}
                 />
               </div>
             </div>
-            <div className="text-right border-l border-black/10 pl-10">
-              <div className="text-4xl font-black text-[#2f3e46] leading-none mb-2">{stats.done}/{stats.total}</div>
-              <div className="text-[10px] font-black text-[#52796f] uppercase tracking-widest opacity-60">Completed</div>
+            <div className="text-right border-l border-gray-200 pl-10">
+              <div className="text-3xl font-black text-black leading-none mb-1">{stats.done}/{stats.total}</div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Completed</div>
             </div>
           </section>
         )}
       </header>
 
       {state.activeView === 'weekly' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(weeklyBlocks).map(([date, blocks]) => (
-            <div key={date} className="p-8 bg-black/5 rounded-[2rem] border border-black/5 hover:bg-white hover:shadow-xl transition-all">
-              <h3 className="text-[10px] font-black text-[#2f3e46] uppercase tracking-[0.2em] mb-6 border-b border-black/5 pb-3">
+            <div key={date} className="p-6 bg-white border border-gray-100 rounded-lg hover:border-black/10 transition-all shadow-sm">
+              <h3 className="text-[10px] font-bold text-black uppercase tracking-[0.2em] mb-5 border-b border-gray-100 pb-2">
                 {new Date(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
               </h3>
-              <div className="space-y-2">
-                {blocks.map(b => (
-                  <div key={b.id} className="text-sm py-1 flex gap-3 items-start">
-                    <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'done' ? 'bg-[#6b705c]' : 'bg-[#a5a58d]'}`} />
-                    <span className={b.status === 'done' ? 'line-through text-[#52796f] opacity-50' : 'text-[#2f3e46] font-medium'}>
-                      {b.content || 'Untitled'}
+              <div className="space-y-1.5">
+                {blocks.slice(0, 5).map(b => (
+                  <div key={b.id} className="text-xs py-1 flex gap-3 items-start">
+                    <span className={`mt-1.5 w-1 h-1 rounded-full shrink-0 ${b.status === 'done' ? 'bg-[#166534]' : 'bg-gray-300'}`} />
+                    <span className={b.status === 'done' ? 'line-through text-gray-400' : 'text-gray-700 font-medium'}>
+                      {b.content || '...'}
                     </span>
                   </div>
                 ))}
@@ -197,7 +197,7 @@ const MainView: React.FC = () => {
                     dispatch({ type: 'SET_DATE', payload: date });
                     dispatch({ type: 'SET_VIEW', payload: 'daily' });
                   }}
-                  className="w-full text-center mt-6 py-2 text-[10px] font-black text-[#6b705c] uppercase tracking-widest hover:text-[#2f3e46] transition-colors"
+                  className="w-full text-center mt-4 py-1.5 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors"
                 >
                   Edit Log
                 </button>
@@ -206,7 +206,7 @@ const MainView: React.FC = () => {
           ))}
         </div>
       ) : (
-        <section className="space-y-1" aria-label="Block log entries">
+        <section className="space-y-0.5" aria-label="Block log entries">
           <DndContext 
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -223,34 +223,33 @@ const MainView: React.FC = () => {
               ))}
             </SortableContext>
           </DndContext>
+
           <button 
             onClick={() => addBlock(currentLogId)}
-            className="group w-full flex items-center gap-4 px-6 py-5 mt-10 text-[#a5a58d] hover:text-[#6b705c] hover:bg-[#6b705c]/5 rounded-[2rem] border-2 border-dashed border-transparent hover:border-[#6b705c]/20 transition-all outline-none"
+            className="group w-full flex items-center gap-4 px-6 py-4 mt-8 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-all border border-dashed border-gray-200 hover:border-gray-300 outline-none"
             aria-label="Add new entry"
           >
-            <div className="w-8 h-8 flex items-center justify-center border-2 border-dashed border-[#a5a58d]/40 rounded-full group-hover:border-[#6b705c]/40 transition-colors">
-              <Plus className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-black tracking-tight">Rapid Log Entry...</span>
+            <Plus className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-widest">Rapid Log Entry</span>
           </button>
         </section>
       )}
 
       {state.backlinks.length > 0 && (
-        <section className="mt-24 pt-12 border-t border-black/5">
-          <h2 className="text-[11px] font-black text-[#a5a58d] uppercase tracking-[0.25em] mb-8 flex items-center gap-3">
+        <section className="mt-24 pt-12 border-t border-gray-100">
+          <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
             <ArrowRightLeft className="w-4 h-4" /> Connected Synapses
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {state.backlinks.map(link => (
               <button
                 key={link.id}
                 onClick={() => navigatetoLink(link.sourceId)}
-                className="p-6 bg-black/5 rounded-[1.5rem] border border-black/5 text-left hover:bg-white hover:shadow-2xl hover:shadow-[#6b705c]/10 transition-all group"
+                className="p-5 bg-white border border-gray-100 rounded-lg text-left hover:border-black/20 hover:shadow-lg transition-all group"
               >
-                <div className="text-[10px] font-black text-[#6b705c] uppercase tracking-widest mb-2">{link.sourceId}</div>
-                <div className="text-sm font-bold text-[#2f3e46] group-hover:text-[#6b705c] transition-colors">
-                  Referenced in this log
+                <div className="text-[9px] font-bold text-[#166534] uppercase tracking-widest mb-1">{link.sourceId}</div>
+                <div className="text-xs font-bold text-black group-hover:text-[#166534] transition-colors uppercase tracking-tight">
+                  Linked here
                 </div>
               </button>
             ))}
@@ -259,35 +258,31 @@ const MainView: React.FC = () => {
       )}
 
       {(state.blocks?.length || 0) === 0 && state.activeView !== 'weekly' && (
-        <div className="mt-24 text-center p-24 bg-black/5 rounded-[4rem] border-4 border-dashed border-black/5">
-          <Clock className="w-20 h-20 text-[#a5a58d]/20 mx-auto mb-8" />
-          <p className="text-[#a5a58d] font-black tracking-tight uppercase text-xs">Tabula Rasa. Your {state.activeView} is waiting.</p>
+        <div className="mt-24 text-center p-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-100">
+          <Clock className="w-12 h-12 text-gray-200 mx-auto mb-6" />
+          <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tabula Rasa. Log your first thought.</p>
         </div>
       )}
 
       {isMigrationOpen && <MigrationWizard onClose={() => setIsMigrationOpen(false)} />}
 
       {isRitualOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-8 bg-[#fdfbf7]/95 backdrop-blur-2xl">
-          <div className="max-w-2xl w-full text-center">
-            <Sun className="w-20 h-20 text-[#6b705c] mx-auto mb-10 opacity-40 animate-pulse" />
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-8 bg-white/95 backdrop-blur-sm">
+          <div className="max-w-md w-full text-center">
+            <Sun className="w-12 h-12 text-gray-300 mx-auto mb-10" />
             <div className="flex items-center justify-center gap-3 mb-4">
-              <Coffee className="w-5 h-5 text-[#a5a58d]" />
-              <span className="text-[11px] font-black text-[#a5a58d] uppercase tracking-[0.3em]">Quiet Morning</span>
+              <Coffee className="w-4 h-4 text-gray-400" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Quiet Session</span>
             </div>
-            <h2 className="text-6xl font-black text-[#2f3e46] mb-10 tracking-tighter">Quiet your mind.</h2>
-            <div className="space-y-8 mb-16">
-              <p className="text-2xl font-medium text-[#52796f] leading-relaxed italic opacity-80">"What is one small win you will seek today?"</p>
-              <div className="h-0.5 w-24 bg-[#6b705c]/10 mx-auto" />
-              <p className="text-[11px] font-black text-[#a5a58d] uppercase tracking-[0.2em] flex items-center justify-center gap-3">
-                <Sparkles className="w-4 h-4" /> Intentionality is the heart of BuJo
-              </p>
+            <h2 className="text-5xl font-black text-black mb-8 tracking-tighter">Focus your intent.</h2>
+            <div className="space-y-6 mb-12">
+              <p className="text-lg font-medium text-gray-600 leading-relaxed italic">"What is the one thing that must happen today?"</p>
             </div>
             <button 
               onClick={() => setIsRitualOpen(false)}
-              className="px-16 py-6 bg-[#2f3e46] text-white font-black uppercase tracking-[0.2em] rounded-[2.5rem] hover:bg-black hover:scale-105 transition-all shadow-2xl shadow-[#2f3e46]/30 text-xs"
+              className="w-full py-5 bg-black text-white font-black uppercase tracking-[0.2em] rounded-lg hover:bg-gray-800 transition-all text-[10px] shadow-2xl"
             >
-              Open Logbook
+              Begin Daily Log
             </button>
           </div>
         </div>
