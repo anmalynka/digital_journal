@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import * as db from '../lib/db';
 import { Block, Collection, Habit, HabitEntry, JournalLink, DayMood, BlockType, Decoration } from '../lib/db';
 
-export type JournalView = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'habit' | 'search' | 'collection' | 'calendar' | 'graph' | 'pixels' | 'library' | 'dashboard' | 'oracle';
+export type JournalView = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'habit' | 'search' | 'collection' | 'calendar' | 'graph' | 'pixels' | 'library' | 'dashboard' | 'oracle' | 'stats' | 'detail';
 export type BookStyle = 'modern' | 'minimalist' | 'parchment' | 'watercolor';
 
 interface JournalState {

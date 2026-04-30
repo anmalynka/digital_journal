@@ -15,6 +15,8 @@ import GraphView from './GraphView';
 import ZenGarden from './ZenGarden';
 import LibraryView from './LibraryView';
 import DashboardView from './DashboardView';
+import JournalStatsView from './JournalStatsView';
+import JournalDetailView from './JournalDetailView';
 import OracleView from './OracleView';
 import SetupProject from './SetupProject';
 import * as db from '../lib/db';
@@ -118,6 +120,8 @@ const MainView: React.FC = () => {
   if (state.activeView === 'graph') return <GraphView />;
   if (state.activeView === 'library') return <LibraryView />;
   if (state.activeView === 'dashboard') return <DashboardView />;
+  if (state.activeView === 'stats') return <JournalStatsView />;
+  if (state.activeView === 'detail') return <JournalDetailView />;
   if (state.activeView === 'oracle') return <OracleView />;
 
   return (

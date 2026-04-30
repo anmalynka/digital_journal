@@ -3,23 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9f9f9;
-  --accent: #166534; /* Professional Forest Green */
+  --bg-primary: #fcf9f4;
+  --bg-secondary: #fcf9f4;
+  --accent: #8cb67a;
   --accent-light: #f0fdf4;
-  --text-primary: #111111;
-  --text-secondary: #666666;
+  --text-primary: #2f3e46;
+  --text-secondary: #6b705c;
   --border: #e5e5e5;
   --paper: #ffffff;
-  --accent-tint: #dcfce7;
 }
 
 [data-theme='dark'] {
-  --bg-primary: #111111;
-  --bg-secondary: #1a1a1a;
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #111111;
   --text-primary: #eeeeee;
   --text-secondary: #aaaaaa;
-  --accent: #22c55e;
+  --accent: #8cb67a;
   --accent-light: #064e3b;
   --border: #333333;
   --paper: #1a1a1a;
@@ -61,11 +60,3 @@ body {
 .backface-hidden {
   backface-visibility: hidden;
 }
-
-/* Methodical v4.5 Overrides */
-.rounded-2xl { border-radius: 8px; }
-.rounded-3xl { border-radius: 12px; }
-.rounded-\[2rem\] { border-radius: 12px; }
-.rounded-\[2\.5rem\] { border-radius: 12px; }
-.rounded-\[3rem\] { border-radius: 16px; }
-.rounded-\[4rem\] { border-radius: 16px; }
